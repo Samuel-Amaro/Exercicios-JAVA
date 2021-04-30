@@ -10,10 +10,13 @@ import java.io.OutputStream;
 import java.nio.charset.Charset;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+
 
 import static java.nio.file.StandardOpenOption. *;
 
@@ -31,14 +34,17 @@ public class GerenciaArquivo implements OperacoesArquivo {
     private String caminhoText;
     private String extensaoArquivo;
     private Path pathFile;
-    
+    private List<String[]> caminhos;
+
+
     //COSNTRUTOR PADRÃO
     public GerenciaArquivo() {}
 
     /**
      * Este metodo mostra informações sobre o caminho do arquivo 
     */
-    public void informationPathFile() {
+    public void informationPathFile(String nomeArquivo, String caminhoAbsoluto, String extensaoArquivo) {
+         this.pathFile = Paths.get(caminhoAbsoluto+"\\"+nomeArquivo+"."+extensaoArquivo);
          System.out.println("################################################");
          System.out.format("PATH COMPLETO: %s %n",this.pathFile.toString());
          System.out.format("NOME DO ARQUIVO: %s %n", this.pathFile.getFileName());
@@ -110,23 +116,23 @@ public class GerenciaArquivo implements OperacoesArquivo {
 
     /**
      * Este metodo simplementes tem a tarefa de criar um arquivo, da maneira mais simple possivel, usando a classe File. 
+     * @throws IOException
     */
     @Override
-    public void criaArquivoSimples(String caminhoAbsoluto, String nomeArquivo, String extensao) {
-        caminhoAbsoluto = caminhoAbsoluto.concat(nomeArquivo + "." + extensao);
+    public void criaArquivoSimples(String caminhoAbsoluto, String nomeArquivo, String extensao){
+        caminhoAbsoluto = caminhoAbsoluto + "\\" + nomeArquivo + "." + extensao;
         Path path = Paths.get(caminhoAbsoluto);
         try {
             //cria um arquivo com atributos e permissões padrões definidos pelo SO
             Files.createFile(path);
             this.pathFile = path;
-            //return true;
-
+            //return mensagem formatada
+            System.out.println(this.mensagemSucesso(1, nomeArquivo));
         }catch(FileAlreadyExistsException x) {
             System.err.println("ARQUIVO JA EXISTE: " + x);
             //return false;
-        }
-        catch (IOException e) {
-            System.err.println("ERRO AO CRIAR ARQUIVO! " + e);
+        }catch(IOException e) {
+            System.err.println("acessar um arquivo que não existe: " + e);
             //return false;
         }
     }
@@ -135,17 +141,19 @@ public class GerenciaArquivo implements OperacoesArquivo {
      * ESTE METODO ESCREVE CONTEUDO EM UM ARQUIVO, USANDO BUFFER DE DADOS E OPERAÇÕES DA CLASSE FILE. 
     */
     @Override
-    public void escreveLinhasArquivo(String linhaConteudo, String caminhoAbsolutoArquivo) {
+    public void escreveLinhasArquivo(String linhaConteudo, String caminho, String file, String extension) {
         //se não tiver conteudo
         if (linhaConteudo.isEmpty()) {
             System.out.println("linha de conteudo tem que ter conteudo!");
         } else {
-            Path caminhoFile = Paths.get(caminhoAbsolutoArquivo);
+            Path caminhoFile = Paths.get(caminho + "\\" + file + "." + extension);
             //conteudo transformado em bytes
             byte[] bufDados = linhaConteudo.getBytes();
             try {
                 //escrevendo no arquivo
-                Files.write(caminhoFile,bufDados);    
+                Files.write(caminhoFile,bufDados);   
+                //lança uma mensagem de sucesso
+                System.out.println(this.mensagemSucesso(2, file + "." + extension)); 
             } catch (IOException e) {
                 System.err.println("ERRO AO ESCREVER LINHA NO ARQUIVO: " + e);
             }
@@ -157,14 +165,16 @@ public class GerenciaArquivo implements OperacoesArquivo {
      * @param caminhoAbsolutoArquivo
      */
     @Override
-    public void lerLinhasArquivo(String caminhoAbsolutoArquivo) {
+    public void lerLinhasArquivo(String caminho, String file, String extension) {
         //onde os dados do arquivo vão ser armazenados
         byte[] buferDados;
         //caminho ate o arquivo
-        Path pathFile = Paths.get(caminhoAbsolutoArquivo);
+        Path pathFile = Paths.get(caminho + "\\" + file + "." + extension);
         try {
             //ler todos os bytes do arquivo, de arquivo pequeno
             buferDados = Files.readAllBytes(pathFile);
+            //mensagem de sucesso que leu arquivo
+            System.out.println(this.mensagemSucesso(3, file +"."+extension));
             //ler todas as linhas de conteudo do arquivo, na codificação padrão de caracteres da paltaforma DO SO que se esta usando 
             List<String> linhaConteudoArquivo = Files.readAllLines(this.pathFile,Charset.defaultCharset());
             System.out.println("############## CONTEUDO DO ARQUIVO : " + pathFile.getFileName() + "######################");
@@ -233,6 +243,88 @@ public class GerenciaArquivo implements OperacoesArquivo {
            } catch (IOException e) {
                System.err.println("ERRO AO LER BUFFER DO ARQUIVO: " + e);
            }
+    }
+
+    /**
+     * este metodo gera um nome para o arquivo
+     * @return String
+     */
+    public String geraNomeFile() {
+        String nome = "arquivoTeste";
+        Random aleatorio = new Random();
+        int numero = aleatorio.nextInt(10);
+        nome = "\\" + nome + numero;
+        return nome;
+    }
+    
+    /**
+     * este metodo gera uma sentença, uma frase de mensagem, de acordo com uma  operação efetuada em um arquivo
+     * 
+     * @param operacao
+     * @return String
+     */
+    public String mensagemSucesso(int operacao, String nomeArquivo) {
+        String mensagem = " ";
+        String divisaoTop = "\n------------------*---------------------------*---------------------\n";
+        String divisaoBaixo = "----------------*---------------------------*---------------------\n";
+        if(operacao == 1) {
+            mensagem = divisaoTop + 
+            "              ARQUIVO: " + nomeArquivo + " CRIADO COM SUCESSO! \n" + 
+            divisaoBaixo;
+            return mensagem;
+        }else if(operacao == 2) {
+            mensagem = divisaoTop + 
+            "              ARQUIVO: " + nomeArquivo + " TEVE CONTEUDO ESCRITO COM SUCESSO! \n" + 
+            divisaoBaixo;
+            return mensagem;
+        }else if(operacao == 3) {
+            mensagem = divisaoTop + 
+            "              ARQUIVO: " + nomeArquivo + " TEVE LEITURA EFETUADO COM SUCESSO! \n" + 
+            divisaoBaixo;
+            return mensagem;
+        }else if(operacao == 4) {
+            mensagem = divisaoTop + 
+            "              ARQUIVO: " + nomeArquivo + " ARQUIVO CRIADO COM SUCESSO E ESCRITA USANDO I/O DE STREAMS SEM BUFFER!\n" + 
+            divisaoBaixo;
+            return mensagem;
+        }else if(operacao == 5) {
+            mensagem = divisaoTop + 
+            "              ARQUIVO: " + nomeArquivo + " OPERAÇÃO DE LEITURA USANDO I/O DE STREAMS SEM BUFFER EFETUADA COM SUCESSO! \n" + 
+            divisaoBaixo;
+            return mensagem;
+        }else if(operacao == 6) {
+            mensagem = divisaoTop + 
+            "              ARQUIVO: " + nomeArquivo + " OPERAÇÃO DE CRIAÇÃO E ESCRITA USANDO I/O DE STREAMS COM BUFFER, EFETUADA COM SUCESSO! \n" + 
+            divisaoBaixo;
+            return mensagem;
+        }else if(operacao == 7) {
+            mensagem = divisaoTop + 
+            "              ARQUIVO: " + nomeArquivo + " OPERAÇÃO DE LEITURA USANDO I/O COM BUFFER, EFETUADA COM SUCESSO!\n" + 
+            divisaoBaixo;
+            return mensagem;
+        }else{
+            return null;
+        }
+    }
+
+    /**
+     * este metodo vai armazenar as referencias dos arquivos criados, para serem usados
+     * 
+     */
+    public void salvaArquivosCriados(String path, String file, String extension) {
+        String[] c = {path, file, extension};
+        caminhos = new ArrayList<String[]>();
+        caminhos.add(c);
+    }
+
+    public String[] getReferenciaUltimoArquivo() {
+        //lista vazia    
+        if(this.caminhos.isEmpty()) {
+            System.out.println("ARQUIVOS NÃO CRIADOS!");
+        }else{
+            return this.caminhos.get(caminhos.size() - 1); 
+        }
+        return null;
     }
 
 }

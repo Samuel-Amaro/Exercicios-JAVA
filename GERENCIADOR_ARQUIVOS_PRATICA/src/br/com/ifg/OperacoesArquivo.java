@@ -20,13 +20,13 @@ public interface OperacoesArquivo {
      * @param linhaConteudo
      * @param caminhoAbsolutoArquivo
      */
-    public void escreveLinhasArquivo(String linhaConteudo, String caminhoAbsolutoArquivo);
+    public void escreveLinhasArquivo(String linhaConteudo, String caminho, String file, String extension);
     
     /**
      * este metodo ler conteudo de um arquivo
      * @param caminhoAbsolutoArquivo
      */
-    public void lerLinhasArquivo(String caminhoAbsolutoArquivo); 
+    public void lerLinhasArquivo(String caminho, String file, String extension); 
 
 
     /**
